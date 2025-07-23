@@ -11,7 +11,7 @@ local function extractSearchParams(paramsN, ...)
 		local param = select(i, ...)
 		local paramType = type(param)
 		if paramType == "table" then
-			if param:available() then
+			if param.n > 0 or param.hasEmpty or param.hasSpace then
 				delimiter = param
 			end
 		elseif paramType == "string" then
@@ -221,10 +221,6 @@ local function newCmdLine(args, ...)
 	cmdLine.search = search
 	cmdLine.unmatched = unmatched
 	return cmdLine
-end
-
-local function available(delimiter)
-	return delimiter.n > 0 or delimiter.hasEmpty or delimiter.hasSpace
 end
 
 local function newDelimiter(...)
