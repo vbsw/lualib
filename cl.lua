@@ -57,13 +57,13 @@ local function searchPairsWithSpace(cmdLine, args, searchTerms, searchTermsN, de
 					if argument == searchTerm then
 						local value, iNxt = "", i+1
 						matched[i] = true
-						if iNxt <= argumentsN then
+						if iNxt <= argumentsN and not matched[iNxt] then
 							value = arguments[iNxt]
 							matched[iNxt] = true
 							i = iNxt
 						end
 						argsN = argsN+1
-						keys[argsN], values[argsN] = argument, value
+						keys[argsN], values[argsN] = searchTerm, value
 						break
 					end
 				elseif argumentN > searchTermN then
