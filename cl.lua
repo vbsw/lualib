@@ -119,7 +119,7 @@ local function searchPairsWithoutSpace(cmdLine, args, searchTerms, searchTermsN,
 	args.n = argsN
 end
 
-local function searchFunc(cmdLine, ...)
+local function search_func(cmdLine, ...)
 	local args = {keys = {}, values = {}, n = 0}
 	local matched, argumentsN = cmdLine.matched, cmdLine.n
 	if not matched[argumentsN+1] then
@@ -158,7 +158,7 @@ local function searchFunc(cmdLine, ...)
 	return args
 end
 
-local function unmatchedFunc(cmdLine)
+local function unmatched_func(cmdLine)
 	local args, argsN = {}, 0
 	local arguments, matched, argumentsN = cmdLine.arguments, cmdLine.matched, cmdLine.n
 	if not matched[argumentsN+1] then
@@ -173,34 +173,7 @@ local function unmatchedFunc(cmdLine)
 	return args
 end
 
-local function useDelimiterFunc(cmdLine, enable, ...)
-	local paramsN = select("#", ...)
-	if paramsN > 0 then
-		local delimiter, n, hasEmpty, hasSpace, paramsN = {}, 0, false, false, select("#", ...)
-		for i = 1, paramsN do
-			local value = select(i, ...)
-			if type(value) == "string" then
-				if value == " " then
-					hasSpace = true
-				elseif value == "" then
-					hasEmpty = true
-				else
-					n = n+1
-					delimiter[n] = value
-				end
-			end
-		end
-		delimiter.n, delimiter.hasEmpty, delimiter.hasSpace, delimiter.using = n, hasEmpty, hasSpace, enable
-		cmdLine.delimiter = delimiter
-	else
-		local delimiter = cmdLine.delimiter
-		if delimiter ~= nil then
-			delimiter.using = enable
-		end
-	end
-end
-
-local function newCmdLineFunc(args, ...)
+local function newCmdLine_func(args, ...)
 	local from, to
 	local cmdLine = {arguments = {}, matched = {}, n = 0}
 	local optsN = select("#", ...)
@@ -240,10 +213,28 @@ local function newCmdLineFunc(args, ...)
 	cmdLine.n = to-from+1
 	-- last value means all arguments are matched
 	cmdLine.matched[cmdLine.n+1] = (cmdLine.n == 0)
-	cmdLine.search = searchFunc
-	cmdLine.unmatched = unmatchedFunc
-	cmdLine.useDelimiter = useDelimiterFunc
+	cmdLine.search = search_func
+	cmdLine.unmatched = unmatched_func
 	return cmdLine
 end
 
-return {newCmdLine = newCmdLineFunc}
+local function newDelimiter_func(use, ...)
+	local delimiter, n, hasEmpty, hasSpace, paramsN = {}, 0, false, false, select("#", ...)
+	for i = 1, paramsN do
+		local value = select(i, ...)
+		if type(value) == "string" then
+			if value == " " then
+				hasSpace = true
+			elseif value == "" then
+				hasEmpty = true
+			else
+				n = n+1
+				delimiter[n] = value
+			end
+		end
+	end
+	delimiter.n, delimiter.hasEmpty, delimiter.hasSpace, delimiter.using = n, hasEmpty, hasSpace, use
+	return delimiter
+end
+
+return {newCmdLine = newCmdLine_func, newDelimiter = newDelimiter_func}
