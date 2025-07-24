@@ -128,7 +128,7 @@ local function search_func(cmdLine, ...)
 			local searchTerms, searchTermsN, delimiter = extractSearchParams(paramsN, ...)
 			if searchTermsN > 0 then
 				local arguments, delimiter, allMatched = cmdLine.arguments, cmdLine.delimiter, true
-				if delimiter == nil or not delimiter.using then
+				if delimiter == nil or not delimiter.active then
 					local keys, argsN = args.keys, 0
 					for i = 1, argumentsN do
 						if not matched[i] then
@@ -218,7 +218,7 @@ local function newCmdLine_func(args, ...)
 	return cmdLine
 end
 
-local function newDelimiter_func(use, ...)
+local function newDelimiter_func(active, ...)
 	local delimiter, n, hasEmpty, hasSpace, paramsN = {}, 0, false, false, select("#", ...)
 	for i = 1, paramsN do
 		local value = select(i, ...)
@@ -233,7 +233,7 @@ local function newDelimiter_func(use, ...)
 			end
 		end
 	end
-	delimiter.n, delimiter.hasEmpty, delimiter.hasSpace, delimiter.using = n, hasEmpty, hasSpace, use
+	delimiter.n, delimiter.hasEmpty, delimiter.hasSpace, delimiter.active = n, hasEmpty, hasSpace, active
 	return delimiter
 end
 
