@@ -6,15 +6,10 @@
 ]]
 
 local function extractSearchParams(paramsN, ...)
-	local searchTerms, searchTermsN, delimiter = nil, 0, nil
+	local searchTerms, searchTermsN = nil, 0
 	for i = 1, paramsN do
 		local param = select(i, ...)
-		local paramType = type(param)
-		if paramType == "table" then
-			if param.n > 0 or param.hasEmpty or param.hasSpace then
-				delimiter = param
-			end
-		elseif paramType == "string" then
+		if type(param) == "string" then
 			searchTermsN = searchTermsN+1
 			if searchTerms == nil then
 				searchTerms = {param}
@@ -23,7 +18,7 @@ local function extractSearchParams(paramsN, ...)
 			end
 		end
 	end
-	return searchTerms, searchTermsN, delimiter
+	return searchTerms, searchTermsN
 end
 
 local function matchByPrefix(argument, argumentN, searchTerm, searchTermN, delimiter)
@@ -124,7 +119,7 @@ local function searchPairsWithoutSpace(cmdLine, args, searchTerms, searchTermsN,
 	args.n = argsN
 end
 
-local function search(cmdLine, ...)
+local function searchFunc(cmdLine, ...)
 	local args = {keys = {}, values = {}, n = 0}
 	local matched, argumentsN = cmdLine.matched, cmdLine.n
 	if not matched[argumentsN+1] then
@@ -132,8 +127,8 @@ local function search(cmdLine, ...)
 		if argumentsN > 0 and paramsN > 0 then
 			local searchTerms, searchTermsN, delimiter = extractSearchParams(paramsN, ...)
 			if searchTermsN > 0 then
-				local arguments, allMatched = cmdLine.arguments, true
-				if delimiter == nil then
+				local arguments, delimiter, allMatched = cmdLine.arguments, cmdLine.delimiter, true
+				if delimiter == nil or not delimiter.using then
 					local keys, argsN = args.keys, 0
 					for i = 1, argumentsN do
 						if not matched[i] then
@@ -163,7 +158,7 @@ local function search(cmdLine, ...)
 	return args
 end
 
-local function unmatched(cmdLine)
+local function unmatchedFunc(cmdLine)
 	local args, argsN = {}, 0
 	local arguments, matched, argumentsN = cmdLine.arguments, cmdLine.matched, cmdLine.n
 	if not matched[argumentsN+1] then
@@ -178,7 +173,34 @@ local function unmatched(cmdLine)
 	return args
 end
 
-local function newCmdLine(args, ...)
+local function useDelimiterFunc(cmdLine, enable, ...)
+	local paramsN = select("#", ...)
+	if paramsN > 0 then
+		local delimiter, n, hasEmpty, hasSpace, paramsN = {}, 0, false, false, select("#", ...)
+		for i = 1, paramsN do
+			local value = select(i, ...)
+			if type(value) == "string" then
+				if value == " " then
+					hasSpace = true
+				elseif value == "" then
+					hasEmpty = true
+				else
+					n = n+1
+					delimiter[n] = value
+				end
+			end
+		end
+		delimiter.n, delimiter.hasEmpty, delimiter.hasSpace, delimiter.using = n, hasEmpty, hasSpace, enable
+		cmdLine.delimiter = delimiter
+	else
+		local delimiter = cmdLine.delimiter
+		if delimiter ~= nil then
+			delimiter.using = enable
+		end
+	end
+end
+
+local function newCmdLineFunc(args, ...)
 	local from, to
 	local cmdLine = {arguments = {}, matched = {}, n = 0}
 	local optsN = select("#", ...)
@@ -218,28 +240,10 @@ local function newCmdLine(args, ...)
 	cmdLine.n = to-from+1
 	-- last value means all arguments are matched
 	cmdLine.matched[cmdLine.n+1] = (cmdLine.n == 0)
-	cmdLine.search = search
-	cmdLine.unmatched = unmatched
+	cmdLine.search = searchFunc
+	cmdLine.unmatched = unmatchedFunc
+	cmdLine.useDelimiter = useDelimiterFunc
 	return cmdLine
 end
 
-local function newDelimiter(...)
-	local delimiter, n, hasEmpty, hasSpace, paramsN = {}, 0, false, false, select("#", ...)
-	for i = 1, paramsN do
-		local value = select(i, ...)
-		if type(value) == "string" then
-			if value == " " then
-				hasSpace = true
-			elseif value == "" then
-				hasEmpty = true
-			else
-				n = n+1
-				delimiter[n] = value
-			end
-		end
-	end
-	delimiter.n, delimiter.hasEmpty, delimiter.hasSpace, delimiter.available = n, hasEmpty, hasSpace, available
-	return delimiter
-end
-
-return {newCmdLine = newCmdLine, newDelimiter = newDelimiter}
+return {newCmdLine = newCmdLineFunc}
